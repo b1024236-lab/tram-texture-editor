@@ -2,47 +2,50 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <!-- iPhone向けViewport設定: ズーム防止 & レスポンシブ化 -->
+  <!-- iPhone表示最適化: ズーム防止 & フルスクリーン対応 -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>iPhone対応 テクスチャ合成エンジン</title>
+  <title>JATCHU テクスチャ合成エンジン</title>
   <style>
     * { box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       margin: 0;
       padding: 12px;
-      background: #f2f2f7; /* iOS風の背景色 */
-      color: #000;
-      overscroll-behavior: none; /* iOSの引っ張りスクロール(バウンス)を無効化 */
+      background: #f2f2f7;
+      color: #1c1c1e;
+      overscroll-behavior: none;
     }
-    h2 { font-size: 18px; margin: 0 0 10px 0; text-align: center; }
+    h2 { 
+      font-size: 17px; 
+      margin: 4px 0 10px 0; 
+      text-align: center; 
+      font-weight: 700;
+    }
 
-    /* Canvasを画面幅いっぱいにフィット */
     #canvas-container {
       width: 100%;
-      background: #1c1c1e;
+      background: #111;
       border-radius: 12px;
       overflow: hidden;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
       margin-bottom: 12px;
     }
     #preview-canvas { 
       width: 100%; 
       height: auto; 
       display: block; 
-      touch-action: none; /* Safariでのブラウザスクロールを無効化 */
+      touch-action: none; /* スマホ画面のスクロール防止 */
       cursor: move; 
     }
 
-    /* iOS風のカード型コントロールパネル */
     .controls {
       background: #ffffff;
-      padding: 12px;
-      border-radius: 12px;
+      padding: 14px;
+      border-radius: 14px;
       display: flex;
       flex-direction: column;
       gap: 10px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
     .control-group {
       display: flex;
@@ -51,7 +54,6 @@
     }
     label { font-size: 11px; font-weight: bold; color: #8e8e93; }
 
-    /* 入力フォームのiOS向けタップサイズ最適化 */
     input[type="text"], select, input[type="file"] {
       font-size: 14px;
       padding: 8px 10px;
@@ -59,6 +61,7 @@
       border-radius: 8px;
       background: #f2f2f7;
       width: 100%;
+      -webkit-appearance: none;
     }
 
     .row { display: flex; gap: 8px; }
@@ -69,15 +72,21 @@
       align-items: center;
       justify-content: space-between;
       background: #f2f2f7;
-      padding: 6px 10px;
+      padding: 8px 10px;
       border-radius: 8px;
     }
-    .slider-box label { font-size: 11px; margin: 0; }
+    .slider-box label { font-size: 11px; margin: 0; color: #3a3a3c; }
     .slider-box input[type="range"] { width: 50%; }
-    .slider-val { font-size: 11px; font-weight: bold; color: #007aff; min-width: 35px; text-align: right; }
+    .slider-val { font-size: 11px; font-weight: bold; color: #007aff; min-width: 38px; text-align: right; }
 
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
     button {
-      background: #007aff; /* iOSブルー */
+      flex: 1;
+      background: #007aff;
       color: white;
       border: none;
       padding: 10px;
@@ -87,19 +96,22 @@
       cursor: pointer;
     }
     button:active { opacity: 0.7; }
+    button.secondary {
+      background: #8e8e93;
+    }
   </style>
 </head>
 <body>
 
-  <h2>ラッピング合成</h2>
+  <h2>市電ラッピング テクスチャ合成</h2>
 
-  <!-- 合成プレビューCanvas -->
+  <!-- プレビューCanvas -->
   <div id="canvas-container">
     <canvas id="preview-canvas" width="2048" height="1024"></canvas>
   </div>
 
   <div class="controls">
-    <!-- 背景 & 画像選択 -->
+    <!-- 背景プリセット & ファイル挿入 -->
     <div class="row">
       <div class="control-group">
         <label>🎨 背景プリセット</label>
@@ -116,12 +128,11 @@
       </div>
     </div>
 
-    <!-- タイトル ＆ サブタイトルテキスト -->
+    <!-- タイトル ＆ サブタイトル -->
     <div class="row">
       <div class="control-group">
         <label>タイトル</label>
-        <!-- タイトルの初期値を「龍鳳」に変更 -->
-        <input type="text" id="main-title" value="龍鳳">
+        <input type="text" id="main-title" value="花もめん">
       </div>
       <div class="control-group">
         <label>サブタイトル</label>
@@ -129,13 +140,14 @@
       </div>
     </div>
 
-    <!-- サイズ調整スライダー -->
+    <!-- 背景拡大率 -->
     <div class="slider-box">
-      <label>背景拡大</label>
+      <label>背景拡大率</label>
       <input type="range" id="bg-scale" min="10" max="300" value="100">
       <span id="bg-scale-val" class="slider-val">100%</span>
     </div>
 
+    <!-- 文字サイズ -->
     <div class="row">
       <div class="slider-box">
         <label>タイトル大</label>
@@ -143,14 +155,16 @@
         <span id="title-size-val" class="slider-val">130px</span>
       </div>
       <div class="slider-box">
-        <label>サブタイトル大</label>
+        <label>サブ大</label>
         <input type="range" id="sub-size" min="20" max="100" value="48">
         <span id="sub-size-val" class="slider-val">48px</span>
       </div>
     </div>
 
-    <button id="btn-download" style="background:#34c759;">生成画像をダウンロード</button>
-    <button id="btn-reset" style="background:#8e8e93;">初期位置・サイズにリセット</button>
+    <div class="btn-row">
+      <button id="btn-save">画像を保存</button>
+      <button id="btn-reset" class="secondary">リセット</button>
+    </div>
   </div>
 
   <script>
@@ -191,6 +205,14 @@
         const grad = ctx.createLinearGradient(0, 0, 0, h);
         grad.addColorStop(0, '#2b1704'); grad.addColorStop(0.5, '#4a2a0c'); grad.addColorStop(1, '#1a0d02');
         ctx.fillStyle = grad; ctx.fillRect(0, 0, w, h);
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+        ctx.lineWidth = 4;
+        for (let i = 0; i < h; i += 16) {
+          ctx.beginPath();
+          ctx.moveTo(0, i + Math.sin(i * 0.05) * 10);
+          ctx.bezierCurveTo(w * 0.3, i - 20, w * 0.7, i + 20, w, i);
+          ctx.stroke();
+        }
       } else if (theme === 'red-stripe') {
         const grad = ctx.createLinearGradient(0, 0, 0, h);
         grad.addColorStop(0, '#8b0000'); grad.addColorStop(0.5, '#d32f2f'); grad.addColorStop(1, '#4a0000');
@@ -202,31 +224,7 @@
       }
     }
 
-    // --- 提灯パーツ (ジャッチュ / ジャッチュ) ---
-    function drawLantern(x, y, text) {
-      ctx.save();
-      ctx.fillStyle = '#d32f2f';
-      ctx.beginPath();
-      ctx.roundRect(x, y, 120, 260, 25);
-      ctx.fill();
-      ctx.strokeStyle = '#000000';
-      ctx.lineWidth = 5;
-      ctx.stroke();
-
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 36px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      
-      const startY = y + 40;
-      const stepY = 45;
-      for (let i = 0; i < text.length; i++) {
-        ctx.fillText(text[i], x + 60, startY + (i * stepY));
-      }
-      ctx.restore();
-    }
-
-    // --- コンテンツ描画 ---
+    // --- テキスト描画 ---
     function drawContent(titleText, subtitleText) {
       const titleSize = parseInt(titleSizeInput.value, 10);
       const subSize = parseInt(subSizeInput.value, 10);
@@ -258,9 +256,39 @@
       ctx.fillText(subtitleText, subX, subY);
       ctx.restore();
 
-      // 両サイド提灯（ジャッチュ）
+      // 左右の提灯を両方とも「ジャッチュ」に変更
       drawLantern(80, 560, 'ジャッチュ');
       drawLantern(canvas.width - 200, 560, 'ジャッチュ');
+    }
+
+    // 提灯描画（文字数に合わせて自動でサイズとピッチを最適化）
+    function drawLantern(x, y, text) {
+      ctx.save();
+      const lanternH = 240;
+      const lanternW = 110;
+
+      ctx.fillStyle = '#d32f2f';
+      ctx.beginPath();
+      ctx.roundRect(x, y, lanternW, lanternH, 25);
+      ctx.fill();
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 5;
+      ctx.stroke();
+
+      // 5文字「ジャッチュ」がきれいに収まるフォントサイズと行間
+      const fontSize = text.length >= 5 ? 32 : 40;
+      const step = text.length >= 5 ? 38 : 45;
+      const startY = y + (lanternH - ((text.length - 1) * step)) / 2;
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `bold ${fontSize}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      for (let i = 0; i < text.length; i++) {
+        ctx.fillText(text[i], x + lanternW / 2, startY + (i * step));
+      }
+      ctx.restore();
     }
 
     // --- 窓・ドアマスク描画 ---
@@ -276,6 +304,7 @@
         ctx.fillRect(x - 6, windowY - 6, windowW + 12, windowH + 12);
         const glassGrad = ctx.createLinearGradient(x, windowY, x + windowW, windowY + windowH);
         glassGrad.addColorStop(0, 'rgba(180, 220, 240, 0.65)');
+        glassGrad.addColorStop(0.5, 'rgba(120, 170, 200, 0.45)');
         glassGrad.addColorStop(1, 'rgba(200, 240, 255, 0.7)');
         ctx.fillStyle = glassGrad;
         ctx.fillRect(x, windowY, windowW, windowH);
@@ -293,7 +322,7 @@
       drawWindowAndDoorMask();
     }
 
-    // --- iPhone用 タッチ座標補正 ---
+    // --- 座標変換 ---
     function getCanvasCoords(e) {
       const rect = canvas.getBoundingClientRect();
       const scaleX = canvas.width / rect.width;
@@ -341,7 +370,7 @@
     canvas.addEventListener('pointerup', stopDrag);
     canvas.addEventListener('pointercancel', stopDrag);
 
-    // イベント設定
+    // イベント
     bgFileInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (file) {
@@ -366,24 +395,27 @@
     document.getElementById('main-title').addEventListener('input', generateTexture);
     document.getElementById('sub-title').addEventListener('input', generateTexture);
 
-    // 画像保存ボタン
-    document.getElementById('btn-download').addEventListener('click', () => {
-      const link = document.createElement('a');
-      link.download = 'tram-texture.png';
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    });
-
-    // リセットボタン
     document.getElementById('btn-reset').addEventListener('click', () => {
       titleSizeInput.value = 130; subSizeInput.value = 48;
       titleX = 1024; titleY = 730; subX = 1024; subY = 885;
       bgScaleInput.value = 100; bgX = 0; bgY = 0; customBgImage = null;
-      document.getElementById('main-title').value = "龍鳳";
       generateTexture();
+    });
+
+    // 画像保存ボタン
+    document.getElementById('btn-save').addEventListener('click', () => {
+      const link = document.createElement('a');
+      link.download = 'jatchu_tram_texture.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
     });
 
     generateTexture();
   </script>
 </body>
 </html>
+```
+
+### 変更点
+- 車体両サイドの赤提灯を、左右ともに **「ジャッチュ」** 表示へ変更しました。
+- 5文字（ジ・ャ・ッ・チ・ュ）が枠内にバランスよく収まるよう、提灯の高さを240px、フォントサイズを32px、行間ピッチを38pxに自動最適化しています。
