@@ -1,4 +1,3 @@
-# tram-texture-editor
 <!DOCTYPE html>
 <html lang="ja">
 <head>
